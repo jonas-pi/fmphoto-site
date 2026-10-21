@@ -1,0 +1,1366 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>飞马相册 — 鸿蒙上的飞牛相册</title>
+  <meta name="theme-color" content="#f3f6fb">
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var stored = null;
+      try { stored = localStorage.getItem('fmphoto-theme'); } catch (e) {}
+      var theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) { meta.setAttribute('content', theme === 'dark' ? '#121a28' : '#f3f6fb'); }
+    })();
+  </script>
+  <meta name="description" content="飞马相册是面向 HarmonyOS 的飞牛 NAS 相册客户端。按时间线浏览，支持 HDR 与实况照片，也可把手机里的新照片备份回 NAS。">
+  <meta property="og:title" content="飞马相册">
+  <meta property="og:description" content="把飞牛 NAS 里的照片，在鸿蒙上翻开。非官方客户端。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://raw.githubusercontent.com/jonas-pi/FMphoto/main/docs/screenshots/04-viewer-hdr.jpg">
+  <link rel="icon" href="icon.png">
+  <style>
+    :root {
+      color-scheme: light dark;
+
+      --bg: #f3f6fb;
+      --ink: #0f141d;
+      --muted: #55607a;
+      --dim: #6f7a8d;
+      --line: rgba(15, 20, 29, 0.09);
+      --line-strong: rgba(15, 20, 29, 0.18);
+      --accent: #2f6bff;
+      --accent-2: #7a5cff;
+      --accent-soft: rgba(47, 107, 255, 0.09);
+
+      --header-bg: rgba(243, 246, 251, 0.7);
+      --header-bg-solid: rgba(243, 246, 251, 0.92);
+      --card-bg: #ffffff;
+      --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+      --card-hover-shadow: 0 20px 40px -26px rgba(16, 24, 40, 0.3);
+      --img-shadow: 0 20px 40px -24px rgba(16, 24, 40, 0.32);
+      --img-hover-shadow: 0 30px 52px -24px rgba(16, 24, 40, 0.38);
+      --phone-shadow: 0 44px 80px -34px rgba(16, 24, 40, 0.42), 0 0 0 1px rgba(15, 20, 29, 0.08);
+      --chip-bg: rgba(255, 255, 255, 0.7);
+      --ghost-bg: #ffffff;
+      --arrow-bg: rgba(255, 255, 255, 0.8);
+      --soft-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+      --step-num: #a9b2c2;
+      --dot-ring: rgba(47, 107, 255, 0.12);
+      --selection: rgba(47, 107, 255, 0.18);
+      --glow-1: rgba(74, 139, 255, 0.18);
+      --glow-2: rgba(150, 104, 255, 0.10);
+      --glow-3: rgba(74, 139, 255, 0.06);
+      --stage-glow: rgba(74, 139, 255, 0.26);
+      --h1-grad: linear-gradient(100deg, #2f6bff 6%, #6f5bff 62%, #9a6cff 100%);
+
+      --serif: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "PMingLiU", serif;
+      --sans: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      --ease: cubic-bezier(.2, .7, .2, 1);
+    }
+
+    :root[data-theme="light"] { color-scheme: light; }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121a28;
+      --ink: #eef1f7;
+      --muted: #9aa4b6;
+      --dim: #7b8497;
+      --line: rgba(255, 255, 255, 0.09);
+      --line-strong: rgba(255, 255, 255, 0.18);
+      --accent: #6b97ff;
+      --accent-2: #a07cff;
+      --accent-soft: rgba(91, 140, 255, 0.14);
+
+      --header-bg: rgba(18, 26, 40, 0.55);
+      --header-bg-solid: rgba(18, 26, 40, 0.86);
+      --card-bg: rgba(255, 255, 255, 0.045);
+      --card-shadow: none;
+      --card-hover-shadow: 0 0 0 1px rgba(120, 160, 255, 0.35);
+      --img-shadow: 0 26px 52px -26px #000;
+      --img-hover-shadow: 0 36px 64px -26px #000;
+      --phone-shadow: 0 60px 100px -40px #000, 0 0 0 7px rgba(255, 255, 255, 0.035);
+      --chip-bg: rgba(255, 255, 255, 0.035);
+      --ghost-bg: rgba(255, 255, 255, 0.03);
+      --arrow-bg: rgba(255, 255, 255, 0.03);
+      --soft-shadow: none;
+      --step-num: #6a7386;
+      --dot-ring: rgba(91, 140, 255, 0.18);
+      --selection: rgba(91, 140, 255, 0.35);
+      --glow-1: rgba(91, 140, 255, 0.20);
+      --glow-2: rgba(150, 104, 255, 0.11);
+      --glow-3: rgba(91, 140, 255, 0.07);
+      --stage-glow: rgba(91, 140, 255, 0.30);
+      --h1-grad: linear-gradient(100deg, #dbe6ff 8%, #86abff 46%, #b99cff 96%);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      overflow-x: clip;
+      background:
+        radial-gradient(900px 620px at 84% -12%, var(--glow-1), transparent 62%),
+        radial-gradient(720px 520px at 2% -6%, var(--glow-2), transparent 60%),
+        radial-gradient(900px 700px at 50% 118%, var(--glow-3), transparent 62%),
+        var(--bg);
+      background-attachment: fixed;
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a { color: inherit; }
+    img { max-width: 100%; height: auto; display: block; }
+    ::selection { background: var(--selection); }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+
+    .wrap {
+      width: min(1160px, calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    /* ---------- header ---------- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--header-bg);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border-bottom: 1px solid transparent;
+      transition: border-color .35s var(--ease), background .35s var(--ease);
+      padding-top: env(safe-area-inset-top);
+    }
+
+    header.scrolled {
+      background: var(--header-bg-solid);
+      border-bottom-color: var(--line);
+    }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 0;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+      font-weight: 650;
+      letter-spacing: 0.03em;
+      font-size: 15.5px;
+    }
+
+    .brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      box-shadow: 0 6px 16px -8px rgba(47, 107, 255, 0.8);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      font-size: 14px;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--muted);
+      transition: color .25s var(--ease);
+    }
+
+    .bar .btn { min-height: 38px; padding: 0 16px; font-size: 13.5px; }
+
+    .bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .theme-toggle {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      background: var(--ghost-bg);
+      box-shadow: var(--soft-shadow);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color .25s var(--ease), border-color .25s var(--ease), transform .3s var(--ease);
+    }
+
+    .theme-toggle svg {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 18px;
+      height: 18px;
+      transition: opacity .28s var(--ease), transform .5s var(--ease);
+    }
+
+    .theme-toggle .sun { color: #e09a2e; opacity: 0; transform: rotate(70deg) scale(.5); }
+    .theme-toggle .moon { color: #6c82e8; opacity: 1; transform: none; }
+
+    :root[data-theme="dark"] .theme-toggle .sun { opacity: 1; transform: none; }
+    :root[data-theme="dark"] .theme-toggle .moon { opacity: 0; transform: rotate(-70deg) scale(.5); }
+
+    .theme-toggle:active { transform: scale(.94); }
+
+    /* ---------- buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 550;
+      white-space: nowrap;
+      transition: transform .3s var(--ease), box-shadow .3s var(--ease), background .3s;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #4a82ff, #2f6bff);
+      color: #fff;
+      box-shadow: 0 12px 28px -12px rgba(47, 107, 255, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn.ghost {
+      background: var(--ghost-bg);
+      color: var(--ink);
+      box-shadow: inset 0 0 0 1px var(--line-strong);
+    }
+
+    /* ---------- hero ---------- */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(300px, 0.98fr);
+      gap: 56px;
+      align-items: center;
+      padding: 84px 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 22px;
+      padding: 7px 14px 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--chip-bg);
+      color: var(--muted);
+      font-size: 12.5px;
+      letter-spacing: 0.08em;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .eyebrow .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(42px, 5.4vw, 78px);
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+    }
+
+    h1 em {
+      font-style: normal;
+      background: var(--h1-grad);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lede {
+      max-width: 33em;
+      margin: 24px 0 0;
+      font-size: 17px;
+      line-height: 1.85;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .fine {
+      margin: 18px 0 0;
+      color: var(--dim);
+      font-size: 13px;
+      letter-spacing: 0.01em;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 34px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .chips li {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--chip-bg);
+      color: var(--dim);
+      font-size: 12.5px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ---------- stage ---------- */
+    .stage {
+      position: relative;
+      height: 700px;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 90px;
+      width: min(560px, 130%);
+      height: 520px;
+      transform: translateX(-50%);
+      background: radial-gradient(closest-side, var(--stage-glow), transparent 78%);
+      filter: blur(20px);
+      pointer-events: none;
+    }
+
+    /* 两台手机并排，整体一起上下浮动，避免各飘各的 */
+    .phones {
+      position: absolute;
+      inset: 0;
+      animation: drift 9s ease-in-out infinite;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .phone {
+      position: absolute;
+      margin: 0;
+      filter: drop-shadow(0 30px 44px rgba(0, 0, 0, 0.38));
+    }
+
+    .phone img { width: 100%; height: auto; }
+
+    .pf {
+      width: 240px;
+      left: 2%;
+      top: 72px;
+      z-index: 2;
+      transform: rotate(-3deg);
+    }
+
+    .pb {
+      width: 240px;
+      right: 2%;
+      top: 72px;
+      transform: rotate(3deg);
+    }
+
+    /* ---------- sections ---------- */
+    section { padding: 84px 0; }
+    section[id] { scroll-margin-top: 84px; }
+
+    .kicker {
+      margin: 0 0 12px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0 0 40px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 3.2vw, 42px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    .sec-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 34px;
+    }
+
+    .sec-head h2 { margin-bottom: 0; }
+
+    .section-lede {
+      max-width: 44em;
+      margin: -22px 0 40px;
+      color: var(--muted);
+      font-size: 15.5px;
+      line-height: 1.85;
+    }
+
+    /* ---------- gallery strip ---------- */
+    .strip {
+      --card-w: 250px;
+      --card-gap: 24px;
+      display: flex;
+      gap: var(--card-gap);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 42px calc(50% - 125px) 42px;
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+    }
+
+    .strip::-webkit-scrollbar { display: none; }
+
+    .shot {
+      flex: 0 0 var(--card-w);
+      margin: 0;
+      scroll-snap-align: center;
+      text-decoration: none;
+      transform: scale(0.8);
+      opacity: 0.5;
+      transform-origin: center center;
+      transition: transform .55s var(--ease), opacity .55s var(--ease);
+      will-change: transform;
+    }
+
+    .shot.is-active {
+      transform: scale(1.14);
+      opacity: 1;
+    }
+
+    .shot img {
+      filter: drop-shadow(0 14px 22px rgba(16, 24, 40, 0.22));
+      transition: transform .5s var(--ease), filter .5s var(--ease);
+    }
+
+    .shot figcaption {
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--dim);
+      letter-spacing: 0.02em;
+    }
+
+    .shot { cursor: pointer; }
+
+    /* ---------- feature cards ---------- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      padding: 26px 24px 28px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+      transition: transform .35s var(--ease), border-color .35s var(--ease), box-shadow .35s var(--ease);
+    }
+
+    .icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.14);
+    }
+
+    .icon svg { width: 20px; height: 20px; }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.8;
+    }
+
+    /* ---------- steps ---------- */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .steps.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .step {
+      position: relative;
+      padding-top: 30px;
+      border-top: 1px solid var(--line);
+    }
+
+    .step::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -3px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--dot-ring);
+    }
+
+    .step .num {
+      display: block;
+      margin-bottom: 10px;
+      font-family: var(--serif);
+      font-size: 30px;
+      line-height: 1;
+      color: var(--step-num);
+      letter-spacing: 0.02em;
+    }
+
+    .step h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+    .step p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+    /* ---------- tips ---------- */
+    .tips {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .tip {
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr);
+      gap: 28px;
+      align-items: baseline;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tip h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .tip p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.75;
+    }
+
+    /* ---------- note ---------- */
+    .note {
+      position: relative;
+      overflow: hidden;
+      padding: 34px 34px 36px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+
+    .note::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), transparent);
+      opacity: 0.85;
+    }
+
+    .note h3 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      color: var(--dim);
+    }
+
+    .note p { margin: 0; color: var(--muted); font-size: 14.5px; }
+    .note p + p { margin-top: 10px; color: var(--dim); }
+
+    /* ---------- footer ---------- */
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 34px 0 calc(56px + env(safe-area-inset-bottom));
+      color: var(--dim);
+      font-size: 13.5px;
+    }
+
+    .foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px 24px;
+    }
+
+    .foot-links { display: flex; flex-wrap: wrap; gap: 20px; }
+    .foot-links a { text-decoration: none; color: var(--muted); transition: color .25s; }
+
+    /* ---------- reveal ---------- */
+    @supports (animation-timeline: view()) {
+      .reveal {
+        animation: rise both linear;
+        animation-timeline: view();
+        animation-range: entry 0% cover 30%;
+      }
+
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: none; }
+      }
+    }
+
+    /* ---------- hover (pointer devices only) ---------- */
+    @media (hover: hover) {
+      nav a:hover { color: var(--ink); }
+      .foot-links a:hover { color: var(--ink); }
+
+      .btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 34px -12px rgba(47, 107, 255, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+      }
+
+      .btn.ghost:hover {
+        transform: translateY(-2px);
+        box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.45);
+      }
+
+      .theme-toggle:hover {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+
+      .shot:hover img {
+        transform: translateY(-8px);
+        filter: drop-shadow(0 24px 32px rgba(16, 24, 40, 0.3));
+      }
+
+      .card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(47, 107, 255, 0.35);
+        box-shadow: var(--card-hover-shadow);
+      }
+    }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 980px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 60px 0 80px;
+      }
+
+      .stage { height: 600px; max-width: 560px; width: 100%; margin: 0 auto; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .wrap { width: calc(100% - 32px); }
+      nav { display: none; }
+      section { padding: 64px 0; }
+      section[id] { scroll-margin-top: 72px; }
+      .hero { padding: 40px 0 48px; }
+      .steps { grid-template-columns: 1fr; gap: 0; }
+      .steps.two { grid-template-columns: 1fr; }
+      .step { padding: 22px 0; border-top: 1px solid var(--line); }
+      .step:last-child { border-bottom: 1px solid var(--line); }
+      .tip { grid-template-columns: 1fr; gap: 6px; padding: 16px 0; }
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: clamp(36px, 10vw, 46px); }
+      .lede { font-size: 15.5px; line-height: 1.8; }
+      .stage {
+        height: auto;
+        padding: 6px 0 0;
+        display: flex;
+        justify-content: center;
+      }
+      .phones {
+        position: static;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        animation: none;
+      }
+      .pf {
+        position: static;
+        width: 72%;
+        transform: rotate(-2.5deg);
+      }
+      .pb { display: none; }
+      .chips {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .chips li { text-align: center; padding: 7px 12px; }
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      .card {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        column-gap: 14px;
+        row-gap: 3px;
+        align-items: start;
+        padding: 18px 18px 20px;
+      }
+      .card .icon { grid-row: span 2; width: 40px; height: 40px; margin: 0; }
+      .card h3 { margin: 0; align-self: end; font-size: 16px; }
+      .card p { grid-column: 2; font-size: 14px; line-height: 1.75; }
+      .strip { --card-w: 200px; --card-gap: 16px; padding: 34px calc(50% - 100px) 32px; }
+      .note { padding: 24px 20px 26px; }
+      .btn { width: 100%; min-height: 50px; }
+      .bar .btn { width: auto; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { animation: none !important; }
+      .phones { animation: none !important; }
+      * { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header id="hd">
+    <div class="wrap bar">
+      <a class="brand" href="#top">
+        <img src="icon.png" alt="">
+        飞马相册
+      </a>
+      <nav>
+        <a href="#preview">界面</a>
+        <a href="#ability">能力</a>
+        <a href="#start">上手</a>
+        <a href="https://github.com/jonas-pi/FMphoto">GitHub</a>
+      </nav>
+      <div class="bar-actions">
+        <a class="btn primary" href="https://appgallery.huawei.com/app/detail?id=com.jonas.fmphoto&channelId=SHARE&source=appshare">下载</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换到深色模式" title="切换到深色模式">
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.6" fill="currentColor" fill-opacity="0.14"/>
+            <path d="M12 1.7v2.2M12 20.1v2.2M1.7 12h2.2M20.1 12h2.2M4.72 4.72l1.56 1.56M17.72 17.72l1.56 1.56M19.28 4.72l-1.56 1.56M6.28 17.72l-1.56 1.56"/>
+          </svg>
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" fill-opacity="0.12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top" class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span>HARMONYOS · 飞牛 NAS · 非官方客户端</p>
+        <h1>家里的相册，<br><em>在鸿蒙上翻开。</em></h1>
+        <p class="lede">飞马相册是面向 HarmonyOS 的飞牛相册客户端。按时间翻照片，看 HDR 和实况，也能把手机里新拍的内容备份回 NAS。照片留在你自己的设备上，不经过开发者的服务器。</p>
+        <div class="actions">
+          <a class="btn primary" href="https://appgallery.huawei.com/app/detail?id=com.jonas.fmphoto&channelId=SHARE&source=appshare">在华为应用市场安装</a>
+          <a class="btn ghost" href="https://github.com/jonas-pi/FMphoto">查看源码</a>
+        </div>
+        <p class="fine">也可在应用市场搜索 FMphoto，包名 com.jonas.fmphoto。</p>
+        <ul class="chips">
+          <li>HDR 显示</li>
+          <li>跨系统实况</li>
+          <li>三粒度时间线</li>
+          <li>本机备份</li>
+        </ul>
+      </div>
+
+      <div class="stage" aria-label="应用界面预览">
+        <div class="phones">
+          <figure class="phone pb">
+            <img src="shots/v2/case/viewer-hdr.webp" width="502" height="1052" alt="大图预览，峡谷照片全屏显示，带 HDR Vivid 标记">
+          </figure>
+          <figure class="phone pf">
+            <img src="shots/v2/case/timeline.webp" width="502" height="1052" alt="图库时间线，按日期排列照片">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="preview">
+      <div class="sec-head reveal">
+        <div>
+          <p class="kicker">界面</p>
+          <h2>像系统图库一样翻。</h2>
+        </div>
+      </div>
+
+      <div class="strip" id="strip">
+        <figure class="shot">
+          <img src="shots/v2/case/timeline.webp" width="502" height="1052" loading="lazy" alt="按日聚合的时间线网格">
+          <figcaption>按日浏览</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/month.webp" width="502" height="1052" loading="lazy" alt="按月聚合的缩略图墙">
+          <figcaption>按月</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/year.webp" width="502" height="1052" loading="lazy" alt="按年聚合的照片">
+          <figcaption>按年</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/viewer-hdr.webp" width="502" height="1052" loading="lazy" alt="全屏大图预览，展示 HDR Vivid 照片">
+          <figcaption>大图预览</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/album.webp" width="502" height="1052" loading="lazy" alt="相册首页，包含分类、人物与地图入口">
+          <figcaption>相册</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/albums-entries.webp" width="502" height="1052" loading="lazy" alt="相册页入口：智能相册与常用入口">
+          <figcaption>相册入口</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/people.webp" width="502" height="1052" loading="lazy" alt="人物相册，按人脸聚合的照片">
+          <figcaption>人物</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/category.webp" width="502" height="1052" loading="lazy" alt="智能分类，雪山、夜景、海滩等类别">
+          <figcaption>智能分类</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/favorites.webp" width="502" height="1052" loading="lazy" alt="收藏夹，按日期分组展示收藏的照片和视频">
+          <figcaption>收藏夹</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/folder-root.webp" width="502" height="1052" loading="lazy" alt="文件夹根目录，按文件夹浏览">
+          <figcaption>文件夹</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/folder-subfolders.webp" width="502" height="1052" loading="lazy" alt="相册素材目录下的子文件夹">
+          <figcaption>相册目录</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/folder-animals.webp" width="502" height="1052" loading="lazy" alt="文件夹内的图片列表">
+          <figcaption>图片列表</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/slideshow.webp" width="502" height="1052" loading="lazy" alt="幻灯片播放设置，可选播放顺序与切换间隔">
+          <figcaption>幻灯片</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/photo-detail.webp" width="502" height="1052" loading="lazy" alt="照片详情，文件名、拍摄时间与分辨率">
+          <figcaption>照片详情</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/queue-v2.webp" width="502" height="1052" loading="lazy" alt="任务队列，展示智能识别与本机相册扫描进度">
+          <figcaption>任务队列</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/backup-settings-v2.webp" width="502" height="1052" loading="lazy" alt="备份设置，备份目录与备份策略">
+          <figcaption>备份设置</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/config-sync.webp" width="502" height="1052" loading="lazy" alt="配置同步，二维码与 WebDAV 两种方式">
+          <figcaption>配置同步</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="shots/v2/case/settings.webp" width="502" height="1052" loading="lazy" alt="设置页，界面配色与同步入口">
+          <figcaption>设置</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="ability">
+      <div class="reveal">
+        <p class="kicker">能力</p>
+        <h2>浏览、整理，再备份回去。</h2>
+        <p class="section-lede">照片始终只在你和你的 NAS 之间。下面这些不是规划，是当前版本已经能用的部分。</p>
+      </div>
+
+      <div class="grid">
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+          </div>
+          <h3>时间线</h3>
+          <p>日、月、年三档粒度，双指捏合直接切换；长按进入多选，也能一路划选。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5L5 20"/></svg>
+          </div>
+          <h3>HDR 与实况</h3>
+          <p>原图按 HDR 解码，画面角上标出 HDR Vivid；安卓、鸿蒙、iOS 的实况都能播放，也能存成系统动态照片。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M9 21H5a2 2 0 0 1-2-2v-4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/></svg>
+          </div>
+          <h3>一镜到底的预览</h3>
+          <p>从宫格点开，位置和大小连续过渡到全屏；没放大时上滑看详情、下滑退出，视频边看边预取。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          </div>
+          <h3>搜索与智能相册</h3>
+          <p>AI 搜索、智能分类、人物相册，还有按拍摄地点汇总的照片足迹。能力取决于 NAS 侧是否开通。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5.5 12a10 10 0 0 1 13 0"/><path d="M9 15.5a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/></svg>
+          </div>
+          <h3>连接与选路</h3>
+          <p>内网、公网、飞牛官方中继三路并行探测；中继只在前两者都不通时兜底，登录后也能手动切换。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 13l4-4"/><circle cx="12" cy="17" r="1.4"/><path d="M3 17h1M20 17h1"/></svg>
+          </div>
+          <h3>满载模式</h3>
+          <p>内网自动吃满带宽；公网与中继默认限制利用率，需要时临时打开，应用退出就恢复原状。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>备份不重复</h3>
+          <p>对齐飞牛官方指纹（文件名、大小、修改时间），本机账本与 NAS 全库索引双重比对；实况按同名判定，不会重复上传。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          </div>
+          <h3>文件与传输</h3>
+          <p>上传、下载、收藏、删除、回收站、批量操作与幻灯片；传输队列里每条任务的进度都看得见。</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.7 0 2.1-1.3 1.1-2.2-1.2-1.1-.3-2.9 1.3-2.9H17a4 4 0 0 0 4-4c0-5-4-9-9-9z"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="15.5" cy="10" r="1"/></svg>
+          </div>
+          <h3>配置与外观</h3>
+          <p>换机时用二维码、WebDAV 或华为云空间带走配置；五套预设配色，也能自定义底色与强调色。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="start">
+      <div class="reveal">
+        <p class="kicker">上手</p>
+        <h2>装上之后，两步就能看。</h2>
+      </div>
+
+      <div class="steps two">
+        <article class="step reveal">
+          <span class="num">01</span>
+          <h3>登录</h3>
+          <p>填写 NAS 地址或 FN ID，以及飞牛账号。地址和密码只留在你的手机和 NAS 之间。</p>
+        </article>
+        <article class="step reveal">
+          <span class="num">02</span>
+          <h3>开始看</h3>
+          <p>相册、搜索或人物如果是空的，先到 NAS 上确认对应服务和权限已经打开。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="tips">
+      <div class="reveal">
+        <p class="kicker">小贴士</p>
+        <h2>长按，还有这些操作。</h2>
+      </div>
+
+      <ul class="tips reveal">
+        <li class="tip">
+          <h3>原图锁定</h3>
+          <p>长按「原图」按钮，之后翻页都按原图加载；再长按一次解除。</p>
+        </li>
+        <li class="tip">
+          <h3>按住 2 倍速</h3>
+          <p>长按视频画面，临时以 2 倍速播放；松手回到原来的倍速。</p>
+        </li>
+        <li class="tip">
+          <h3>锁定倍速与清晰度</h3>
+          <p>长按底栏的倍速或清晰度按钮锁定当前档位，切换视频时继续沿用；再长按解除。</p>
+        </li>
+        <li class="tip">
+          <h3>相册排序</h3>
+          <p>在相册页长按相册卡片，拖动即可调整顺序。</p>
+        </li>
+        <li class="tip">
+          <h3>滑动多选</h3>
+          <p>长按一张缩略图后不要松手，直接滑过要选的照片；拖到屏幕边缘会自动滚动。</p>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="note reveal">
+        <h3>注意</h3>
+        <p>备份和自动同步由个人开发者维护，没法做完备测试。请不要把唯一的一份照片交给本应用管理，重要内容请另行保留。</p>
+        <p>飞马相册不包含广告，也不把照片发到开发者的服务器。若使用 FN ID，地址解析会经过飞牛的连接服务。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <span>© 2026 jonaspi · 非官方客户端</span>
+      <div class="foot-links">
+        <a href="https://appgallery.huawei.com/app/detail?id=com.jonas.fmphoto&channelId=SHARE&source=appshare">应用市场</a>
+        <a href="https://github.com/jonas-pi/FMphoto">GitHub</a>
+        <a href="https://jonas-pi.github.io/FMphoto/privacy.html">隐私政策</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var hd = document.getElementById('hd');
+      var onScroll = function () {
+        hd.classList.toggle('scrolled', window.scrollY > 8);
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      var strip = document.getElementById('strip');
+
+      // 复制两组卡片，让中心两侧始终有内容；滚过一整组后瞬时回退，形成无缝循环
+      var originals = Array.prototype.slice.call(strip.children);
+      for (var pass = 0; pass < 2; pass++) {
+        originals.forEach(function (node) {
+          var clone = node.cloneNode(true);
+          clone.setAttribute('aria-hidden', 'true');
+          strip.appendChild(clone);
+        });
+      }
+
+      var cards = Array.prototype.slice.call(strip.children);
+      var period = 0;
+      var activeIndex = -1;
+
+      function measure() {
+        var card = strip.querySelector('.shot');
+        var w = card ? card.offsetWidth : 250;
+        var gap = parseFloat(getComputedStyle(strip).columnGap) || 24;
+        period = originals.length * (w + gap);
+      }
+
+      // 离容器中心最近的一张标记为 active，由它放大、两侧缩小
+      function updateActive() {
+        var box = strip.getBoundingClientRect();
+        var mid = box.left + box.width / 2;
+        var best = 0;
+        var bestD = Infinity;
+        for (var i = 0; i < cards.length; i++) {
+          var r = cards[i].getBoundingClientRect();
+          var d = Math.abs(r.left + r.width / 2 - mid);
+          if (d < bestD) {
+            bestD = d;
+            best = i;
+          }
+        }
+        if (best !== activeIndex) {
+          if (activeIndex >= 0 && cards[activeIndex]) {
+            cards[activeIndex].classList.remove('is-active');
+          }
+          cards[best].classList.add('is-active');
+          activeIndex = best;
+        }
+      }
+
+      function recenter() {
+        strip.scrollLeft = period;
+        updateActive();
+      }
+
+      measure();
+      window.addEventListener('resize', function () {
+        measure();
+        recenter();
+      });
+
+      var ticking = false;
+      strip.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          updateActive();
+          ticking = false;
+        });
+      }, { passive: true });
+
+      var normTimer = 0;
+      strip.addEventListener('scroll', function () {
+        clearTimeout(normTimer);
+        normTimer = setTimeout(function () {
+          if (period > 0 && strip.scrollLeft >= 2 * period) {
+            strip.scrollLeft -= period;
+            updateActive();
+          }
+        }, 240);
+      }, { passive: true });
+
+      requestAnimationFrame(recenter);
+
+      // 自动轮播：停 2.5s 后前进一张，滚到中点无缝回到起点
+      var AUTO_MS = 2500;
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var timer = 0;
+      var inView = false;
+      var holdUntil = 0;
+      var raf = 0;
+
+      function hold(ms) {
+        holdUntil = Date.now() + ms;
+        schedule();
+      }
+
+      function stepSize() {
+        return period > 0 ? period / originals.length : 254;
+      }
+
+      // 自己用 rAF 做动画：连续点击只是改目标位置，不会叠出多次平滑滚动
+      function animateTo(target) {
+        if (reduced) {
+          strip.scrollLeft = target;
+          updateActive();
+          return;
+        }
+        cancelAnimationFrame(raf);
+        var start = strip.scrollLeft;
+        var dist = target - start;
+        if (Math.abs(dist) < 1) return;
+        strip.style.scrollSnapType = 'none';
+        var t0 = 0;
+        var dur = Math.min(520, 260 + Math.abs(dist) * 0.4);
+        function tick(now) {
+          if (!t0) t0 = now;
+          var p = Math.min(1, (now - t0) / dur);
+          var e = 1 - Math.pow(1 - p, 3);
+          strip.scrollLeft = start + dist * e;
+          if (p < 1) {
+            raf = requestAnimationFrame(tick);
+          } else {
+            strip.style.scrollSnapType = '';
+            updateActive();
+          }
+        }
+        raf = requestAnimationFrame(tick);
+      }
+
+      function advance() {
+        animateTo(strip.scrollLeft + stepSize());
+      }
+
+      function schedule() {
+        clearTimeout(timer);
+        if (!inView || document.hidden) return;
+        if (Date.now() < holdUntil) {
+          timer = setTimeout(schedule, Math.min(holdUntil - Date.now(), AUTO_MS));
+          return;
+        }
+        timer = setTimeout(function () {
+          advance();
+          schedule();
+        }, AUTO_MS);
+      }
+
+      // 点击某张图：把它滚到中间；连续点击会平滑改道，不会抽搐
+      strip.addEventListener('click', function (e) {
+        var node = e.target;
+        while (node && node !== strip && !(node.classList && node.classList.contains('shot'))) {
+          node = node.parentNode;
+        }
+        if (!node || node === strip) return;
+        centerCard(node);
+        hold(12000);
+      });
+
+      function centerCard(card) {
+        var box = strip.getBoundingClientRect();
+        var r = card.getBoundingClientRect();
+        var delta = r.left + r.width / 2 - (box.left + box.width / 2);
+        if (Math.abs(delta) < 2) return;
+        animateTo(strip.scrollLeft + delta);
+      }
+
+      // 只有真的拖动时才打断动画；单纯点击交给点击逻辑改目标
+      function cancelGlide() {
+        cancelAnimationFrame(raf);
+        strip.style.scrollSnapType = '';
+      }
+
+      var downX = 0;
+      var downY = 0;
+      var pressing = false;
+
+      strip.addEventListener('pointerdown', function (e) {
+        pressing = true;
+        downX = e.clientX;
+        downY = e.clientY;
+        hold(12000);
+      }, { passive: true });
+
+      strip.addEventListener('pointermove', function (e) {
+        if (!pressing) return;
+        if (Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) {
+          pressing = false;
+          cancelGlide();
+        }
+      }, { passive: true });
+
+      strip.addEventListener('pointerup', function () {
+        pressing = false;
+      }, { passive: true });
+
+      strip.addEventListener('pointercancel', function () {
+        pressing = false;
+      }, { passive: true });
+
+      strip.addEventListener('touchstart', function () {
+        hold(12000);
+      }, { passive: true });
+
+      strip.addEventListener('touchmove', function () {
+        cancelGlide();
+      }, { passive: true });
+
+      strip.addEventListener('wheel', function () {
+        cancelGlide();
+        hold(12000);
+      }, { passive: true });
+
+      document.addEventListener('visibilitychange', schedule);
+
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          inView = entries[0].isIntersecting;
+          schedule();
+        }, { threshold: 0.2 }).observe(strip);
+      }
+
+      schedule();
+    })();
+  </script>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+
+      var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+      function stored() {
+        try {
+          var value = localStorage.getItem('fmphoto-theme');
+          return value === 'light' || value === 'dark' ? value : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function apply(theme, persist) {
+        root.setAttribute('data-theme', theme);
+        if (persist) {
+          try { localStorage.setItem('fmphoto-theme', theme); } catch (e) {}
+        }
+        var text = theme === 'dark' ? '切换到浅色模式' : '切换到深色模式';
+        btn.setAttribute('aria-label', text);
+        btn.setAttribute('title', text);
+        btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+          meta.setAttribute('content', theme === 'dark' ? '#121a28' : '#f3f6fb');
+        }
+      }
+
+      apply(root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light', false);
+
+      btn.addEventListener('click', function () {
+        apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
+      });
+
+      if (media) {
+        var onSystemChange = function (event) {
+          if (stored() !== null) return;
+          apply(event.matches ? 'dark' : 'light', false);
+        };
+        if (media.addEventListener) {
+          media.addEventListener('change', onSystemChange);
+        } else if (media.addListener) {
+          media.addListener(onSystemChange);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
