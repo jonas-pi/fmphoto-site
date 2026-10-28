@@ -662,6 +662,9 @@
     .foot-links { display: flex; flex-wrap: wrap; gap: 20px; }
     .foot-links a { text-decoration: none; color: var(--muted); transition: color .25s; }
 
+    .icp { margin: 20px 0 0; text-align: center; font-size: 13px; }
+    .icp a { color: var(--muted); text-decoration: none; transition: color .25s; }
+
     /* ---------- reveal ---------- */
     @supports (animation-timeline: view()) {
       .reveal {
@@ -1120,13 +1123,16 @@
   </main>
 
   <footer>
-    <div class="wrap foot">
-      <span>© 2026 jonaspi · 非官方客户端</span>
-      <div class="foot-links">
-        <a href="https://appgallery.huawei.com/app/detail?id=com.jonas.fmphoto&channelId=SHARE&source=appshare">应用市场</a>
-        <a href="https://github.com/jonas-pi/FMphoto">GitHub</a>
-        <a href="https://jonas-pi.github.io/FMphoto/privacy.html">隐私政策</a>
+    <div class="wrap">
+      <div class="foot">
+        <span>© 2026 jonaspi · 非官方客户端</span>
+        <div class="foot-links">
+          <a href="https://appgallery.huawei.com/app/detail?id=com.jonas.fmphoto&channelId=SHARE&source=appshare">应用市场</a>
+          <a href="https://github.com/jonas-pi/FMphoto">GitHub</a>
+          <a href="https://jonas-pi.github.io/FMphoto/privacy.html">隐私政策</a>
+        </div>
       </div>
+      <p class="icp"><a href="http://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">粤ICP备2026045851号-2</a></p>
     </div>
   </footer>
 
